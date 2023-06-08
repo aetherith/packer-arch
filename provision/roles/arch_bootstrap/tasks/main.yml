@@ -1,0 +1,42 @@
+---
+- name: Update system clock.
+  command: >
+    timedatectl set-ntp true
+- name: Download mirror list.
+  get_url:
+    url: "{{ arch_bootstrap_mirrorlist_url }}"
+    dest: "{{ arch_bootstrap_mirrorlist_path }}"
+    owner: root
+    group: root
+    mode: 0644
+- name: Enable all mirrors.
+  replace:
+    path: "{{ arch_bootstrap_mirrorlist_path }}"
+    regexp: "^#Server"
+    replace: "Server"
+- name: Refresh the package caches.
+  pacman:
+    update_cache: yes
+- name: Install parted to setup partitions.
+  package:
+    name: parted
+    state: present
+- name: Set up LVM filesystems.
+  include_tasks: lvm.yml
+- name: Install base system.
+  include_tasks: base_system.yml
+- name: Configure networks.
+  include_tasks: networks.yml
+- name: Configure default user.
+  include_tasks: default_user.yml
+- name: Setup bootloader.
+  include_tasks: bootloader.yml
+- name: Unmount all install partitions.
+  mount:
+    path: "{{ [arch_bootstrap_root_mount_point, item.mount_point] | join('/') }}"
+    state: unmounted
+  loop: "{{ arch_bootstrap_filesystems }}"
+- name: Reboot the system.
+  when: arch_bootstrap_reboot_enabled | bool
+  reboot:
+    reboot_timeout: 60

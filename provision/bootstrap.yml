@@ -1,0 +1,8 @@
+---
+- name: Bootstrap Image
+  hosts: default
+  become: true
+  tasks:
+    - name: Run the bootstrap role.
+      include_role:
+        name: arch_bootstrap

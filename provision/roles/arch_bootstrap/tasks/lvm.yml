@@ -1,0 +1,36 @@
+---
+- name: Create a single LVM partition on each root block device.
+  parted:
+    device: "{{ item }}"
+    number: 1
+    label: msdos
+    part_type: primary
+    flags:
+      - lvm
+    state: present
+  loop: "{{ arch_bootstrap_root_block_devices }}"
+- name: Create the root volume group.
+  lvg:
+    vg: "{{ arch_bootstrap_root_volume_group_name }}"
+    pvs: "{{ arch_bootstrap_root_block_devices | map('regex_replace', '^(?P<dev>.*)$', '\\g<dev>1') | list | join(',') }}"
+    state: present
+- name: Create logical volumes.
+  lvol:
+    vg: "{{ arch_bootstrap_root_volume_group_name }}"
+    lv: "{{ item.name }}"
+    size: "{{ item.size }}"
+    state: present
+  loop: "{{ arch_bootstrap_filesystems }}"
+- name: Create filesystems.
+  filesystem:
+    device: /dev/{{ arch_bootstrap_root_volume_group_name }}/{{ item.name }}
+    fstype: "{{ item.filesystem }}"
+  loop: "{{ arch_bootstrap_filesystems }}"
+- name: Mount filesystems.
+  mount:
+    path: "{{ [arch_bootstrap_root_mount_point, item.mount_point] | join('/') }}"
+    src: "/dev/{{ arch_bootstrap_root_volume_group_name }}/{{ item.name }}"
+    fstype: "{{ item.filesystem }}"
+    opts: noatime,errors=remount-ro
+    state: mounted
+  loop: "{{ arch_bootstrap_filesystems }}"

@@ -1,0 +1,41 @@
+---
+- name: Create default user.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    useradd \
+      --comment 'Default Cloud User' \
+      --create-home \
+      --user-group \
+      --groups {{ arch_bootstrap_default_user_groups | join(',') }} \
+      {{ arch_bootstrap_default_user }}
+- name: Get default user home directory.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    getent passwd "{{ arch_bootstrap_default_user }}" | cut -d: -f6
+  register: arch_bootstrap_default_user_getent
+- name: Set that value as a fact.
+  set_fact:
+    arch_bootstrap_default_user_home_dir: "{{ arch_bootstrap_default_user_getent.stdout }}"
+- name: Create user SSH directory.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    install --directory \
+      --owner={{ arch_bootstrap_default_user }} \
+      --group={{ arch_bootstrap_default_user }} \
+      --mode=0700 \
+      {{ arch_bootstrap_default_user_home_dir }}/.ssh \
+- name: Insert authorized key.
+  copy:
+    dest: "{{ arch_bootstrap_root_mount_point }}/{{ arch_bootstrap_default_user_home_dir }}/.ssh/authorized_keys"
+    content: "{{ lookup('file', arch_bootstrap_default_user_public_key) }}"
+    mode: 0600
+- name: Fix owner of authorized keys.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    chown {{ arch_bootstrap_default_user }}:{{ arch_bootstrap_default_user }} \
+    {{ arch_bootstrap_default_user_home_dir }}/.ssh/authorized_keys
+- name: Set up sudoers for the default user.
+  template:
+    src: sudoers_cloud_user.j2
+    dest: "{{ arch_bootstrap_root_mount_point }}/etc/sudoers.d/10_cloud_user"
+    mode: 0440

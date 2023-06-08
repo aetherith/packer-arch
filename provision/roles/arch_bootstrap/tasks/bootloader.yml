@@ -1,0 +1,38 @@
+---
+- name: Install packages required for boot.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    pacman -S --noconfirm {{ arch_bootstrap_boot_packages | join(' ') }}
+- name: Install packages required for boot from LVM.
+  when: arch_bootstrap_use_lvm | bool
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    pacman -S --noconfirm {{ arch_bootstrap_lvm_boot_packages | join(' ') }}
+- name: Add LVM hooks to mkinitcpio.
+  when: arch_bootstrap_use_lvm | bool
+  lineinfile:
+    path: "{{ arch_bootstrap_root_mount_point }}/etc/mkinitcpio.conf"
+    regexp: '^(HOOKS=\(.*base)(.*)(filesystems.*)$'
+    line: '\1 systemd\2sd-lvm2 \3'
+    backrefs: yes
+    state: present
+- name: Regenerate initramfs.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    mkinitcpio -P
+- name: Make sure LVM modules are loaded for GRUB.
+  lineinfile:
+    path: "{{ arch_bootstrap_root_mount_point }}/etc/default/grub"
+    regexp: '^(GRUB_PRELOAD_MODULES=.*)(")$'
+    line: '\1 lvm\2'
+    backrefs: yes
+    state: present
+- name: Install GRUB to root block devices.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    grub-install --target i386-pc {{ item }}
+  loop: "{{ arch_bootstrap_root_block_devices }}"
+- name: Create GRUB main configuration file.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    grub-mkconfig -o /boot/grub/grub.cfg

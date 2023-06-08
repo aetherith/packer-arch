@@ -1,0 +1,10 @@
+---
+# https://wiki.archlinux.org/index.php/Network_configuraton#Device_names
+- name: Force old style device names.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules
+- name: Enable DHCP on eth0.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    ln -s '/usr/lib/systemd/system/dhcpcd@.service' '/etc/systemd/system/multi-user.target.wants/dhcpcd@eth0.service'

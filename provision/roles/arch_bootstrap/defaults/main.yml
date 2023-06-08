@@ -1,0 +1,48 @@
+---
+# = Flags =====================================================================
+arch_bootstrap_reboot_enabled: yes
+
+# = Configuration =============================================================
+arch_bootstrap_fqdn: archlinux.example.com
+arch_bootstrap_keymap: us
+arch_bootstrap_locale: en_US.UTF-8
+arch_bootstrap_timezone: UTC
+arch_bootstrap_default_user: root
+arch_bootstrap_default_user_groups:
+  - wheel
+  - users
+arch_bootstrap_default_user_public_key: ""
+
+# = Disks =====================================================================
+arch_bootstrap_use_lvm: yes
+arch_bootstrap_root_block_devices:
+  - /dev/sda
+arch_bootstrap_root_volume_group_name: arch_root
+arch_bootstrap_filesystems:
+  - name: root
+    mount_point: /
+    filesystem: ext4
+    size: 100%FREE
+arch_bootstrap_root_mount_point: /mnt
+
+# = Mirrors ===================================================================
+arch_bootstrap_country: US
+arch_bootstrap_mirrorlist_url: https://www.archlinux.org/mirrorlist/?country={{ arch_bootstrap_country }}&protocol=https&ip_version=4&use_mirror_status=on
+arch_bootstrap_mirrorlist_path: /etc/pacman.d/mirrorlist
+
+# = Packages ==================================================================
+arch_bootstrap_base_packages:
+  - base
+  - base-devel
+  - linux
+  - linux-firmware
+  - dhcpcd
+arch_bootstrap_boot_packages:
+  - gptfdisk
+  - grub
+arch_bootstrap_lvm_boot_packages:
+  - lvm2
+arch_bootstrap_additional_packages:
+  - openssh
+  - rng-tools
+  - python

@@ -1,0 +1,38 @@
+---
+- name: Install base system with pacstrap.
+  command: >
+    /usr/bin/pacstrap {{ arch_bootstrap_root_mount_point }} {{ arch_bootstrap_base_packages | join(' ') }}
+- name: Install additional packages.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    pacman -S --noconfirm {{ arch_bootstrap_additional_packages | join(' ') }}
+- name: Generate fstab.
+  command: >
+    genfstab -U {{ arch_bootstrap_root_mount_point }} >> {{ arch_bootstrap_root_mount_point }}/etc/fstab
+- name: Set hostname.
+  copy:
+    dest: "{{ arch_bootstrap_root_mount_point }}/etc/hostname"
+    content: "{{ arch_bootstrap_fqdn }}"
+- name: Set keymap.
+  copy:
+    dest: "{{ arch_bootstrap_root_mount_point }}/etc/vconsole.conf"
+    content: "KEYMAP={{ arch_bootstrap_keymap }}"
+- name: Set locale.
+  lineinfile:
+    path: "{{ arch_bootstrap_root_mount_point }}/etc/locale.gen"
+    regexp: "#?{{ arch_bootstrap_locale }}"
+    line: "{{ arch_bootstrap_locale }}"
+    state: present
+- name: Generate locale.
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    /usr/bin/locale-gen
+# Workaround for https://bugs.archlinux.org/task/58355
+- name: Enable rngd
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    systemctl enable rngd
+- name: Enable sshd
+  shell: >
+    /usr/bin/arch-chroot {{ arch_bootstrap_root_mount_point }}
+    systemctl enable sshd
